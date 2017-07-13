@@ -1,0 +1,7 @@
+flask-restful
+sqlalchemy
+mypy
+pylint
+pytest
+pytest-cov
+pep8
