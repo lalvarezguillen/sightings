@@ -2,38 +2,45 @@
 ORMs
 '''
 from uuid import uuid4
-from sqlalchemy import Column, ForeignKey, Integer, String, Float
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
-from sqlalchemy import create_engine
+from peewee import (SqliteDatabase, Model, CharField,
+                    FloatField, PrimaryKeyField)
+from playhouse.fields import ManyToManyField
 
 
-BASE = declarative_base()
+DATABASE = SqliteDatabase(None)
 
 
-class Individuo(BASE):
+class BaseModel(Model):
+    class Meta:
+        database = DATABASE
+
+
+class Sighting(BaseModel):
     '''
-    Representa un individuo avistado
+    Representa eventos de Sighting de Subjects
     '''
-    __tablename__ = 'individuo'
-    id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))
-    nombre = Column(String(250), nullable=False)
-    avistamientos = relationship("Avistamiento", back_populates="avistados")
+    id = PrimaryKeyField(null=False)
+    long = FloatField(null=False)
+    lat = FloatField(null=False)
 
 
-class Avistamiento(BASE):
+class Subject(BaseModel):
     '''
-    Representa eventos de avistamiento de individuos
+    Representa un Subject avistado
     '''
-    __tablename__ = 'avistamiento'
-    id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))
-    longitud = Column(Float, nullable=False)
-    latitud = Column(Float, nullable=False)
-    individuo_id = Column(String(36), ForeignKey('individuo.id'))
-    avistados = relationship("Individuo", back_populates="avistamientos")
+    id = PrimaryKeyField(null=False)
+    name = CharField(max_length=36, null=False,
+                     unique=True)
+    sightings = ManyToManyField(Sighting,
+                                related_name='subjects')
 
 
-ENGINE = create_engine('sqlite://')
+SightingSubject = Subject.sightings.get_through_model()
 
 
-BASE.metadata.create_all(ENGINE)
+def init_database(database_name):
+    DATABASE.init(database_name)
+    DATABASE.connect()
+    DATABASE.create_tables([Sighting,
+                            Subject,
+                            SightingSubject])
