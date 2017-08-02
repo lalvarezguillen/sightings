@@ -1,21 +1,16 @@
 '''
 Unittests for the ORMs
 '''
-import os
-from peewee import SqliteDatabase
-from sightings.models import (Sighting, Subject,
-                              SightingSubject,
-                              DATABASE)
+from sightings.models import (Sighting,
+                              Subject,
+                              Media,
+                              init_database)
 
 
 class TestModels:
     @classmethod
     def setup_class(cls):
-        DATABASE.init('test.db')
-        DATABASE.connect()
-        DATABASE.create_tables([Sighting,
-                                Subject,
-                                SightingSubject])
+        init_database(':memory:')
 
     def test_subject_creation(self):
         rita = Subject(name='Rita')
@@ -31,10 +26,17 @@ class TestModels:
 
         luis = Subject.get(Subject.name == 'Luis')
         rita = Subject.get(Subject.name == 'Rita')
-        in_caracas.individuos = [luis, rita]
+        in_caracas.subjects = [luis, rita]
         in_caracas.save()
-        assert len(list(in_caracas.individuos)) == 2
+        luis.update()
+        assert len(luis.sightings) == 1
 
-    @classmethod
-    def teardown_class(cls):
-        os.remove('test.db')
+    def test_media_creation(self):
+        in_caracas = Sighting.get(Sighting.lat == 80.08)
+        picture = Media(filename='test.file',
+                        content_type='application/unknown',
+                        url='www.test_file.com',
+                        sighting=in_caracas)
+        picture.save()
+        in_caracas.update()
+        assert in_caracas.media_files[0].id == picture.id
